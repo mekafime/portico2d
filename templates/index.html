@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Frame Analysis</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+        .container {
+            width: 45%;
+        }
+        img {
+            width: 100%;
+            border: 1px solid black;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+	
+	<script>
+     $(document).ready(function() {
+        $.post('/reiniciar', function(response) {
+            console.log(response.mensaje); 
+			$("#estructura").attr("src", "data:image/png;base64," + response.img_data);
+        });
+     });
+    </script>
+
+	
+	<script>
+		function enviarFormulario(formulario, url) {
+			var datos = $(formulario).serialize();
+			$.post(url, datos, function(response) {
+				if (response.img_data) {
+					$("#estructura").attr("src", "data:image/png;base64," + response.img_data);
+				}
+				if (response.materiales) {
+					var tablaMateriales = $("#tabla-materiales tbody");
+					tablaMateriales.empty();
+					$("#material_id").empty();
+					response.materiales.forEach(function(material) {
+						tablaMateriales.append(
+							`<tr>
+								<td>${material[0]}</td>
+								<td>${material[1]}</td>
+								<td>${material[2]}</td>
+								<td>${material[3]}</td>
+							</tr>`
+						);
+						$("#material_id").append(`<option value="${material[0]}">Material ${material[0]}</option>`);
+					});
+				}
+				if (response.img_axial && response.img_cortante && response.img_momento) {
+					console.log("📌 Mostrando resultados del análisis");
+					$(".resultados").removeClass("hidden");
+					$("#grafico_axial").attr("src", "data:image/png;base64," + response.img_axial);
+					$("#grafico_cortante").attr("src", "data:image/png;base64," + response.img_cortante);
+					$("#grafico_momento").attr("src", "data:image/png;base64," + response.img_momento);
+				} else {
+					console.log("⚠️ No se recibieron gráficos.");
+				}
+				if (response.reacciones) {
+					console.log("📌 Mostrando tabla de reacciones");
+					var tablaReacciones = $("#tabla-reacciones tbody");
+					tablaReacciones.empty();
+					response.reacciones.forEach(function(reaccion) {
+						tablaReacciones.append(
+							`<tr>
+								<td>${reaccion[0]}</td>
+								<td>${reaccion[1].toFixed(2)}</td>
+								<td>${reaccion[2].toFixed(2)}</td>
+								<td>${reaccion[3].toFixed(2)}</td>
+							</tr>`
+						);
+					});
+				} else {
+					console.log("⚠️ No se recibieron reacciones.");
+				}
+			}).fail(function(error) {
+				console.log("❌ Error en el servidor:", error.responseText);
+			});
+		}
+
+		$(document).ready(function() {
+			$("form").submit(function(e) {
+				e.preventDefault();
+				enviarFormulario(this, $(this).attr("action"));
+			});
+		});
+	</script>
+
+</head>
+<body>
+    <div class="container">
+        <h1>Bienvenido a 2D Frame Analysis</h1>
+        <h2>Estructura</h2>
+		<img id="estructura" src="data:image/png;base64,{{ img_data }}" alt="Estructura">
+
+        
+        <div class="resultados hidden">
+            <h2>Resultados del Análisis</h2>
+            <h3>Reacciones en los Apoyos</h3>
+            <table id="tabla-reacciones">
+                <thead>
+                    <tr>
+                        <th>Nodo</th>
+                        <th>Rx (kN)</th>
+                        <th>Ry (kN)</th>
+                        <th>Mz (kN*m)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <h3>Gráficos de Esfuerzos</h3>
+            <img id="grafico_deformaciones" src="" alt="Deformaciones">
+            <img id="grafico_axial" src="" alt="Esfuerzo Axial">
+            <img id="grafico_cortante" src="" alt="Esfuerzo Cortante">
+            <img id="grafico_momento" src="" alt="Momento Flector">
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Agregar Material</h2>
+        <form action="/agregar_material" method="post">
+            Módulo Elasticidad (MPa): <input type="text" name="modulo_elasticidad" required>
+            Área (m²): <input type="text" name="area" required>
+            Inercia (m⁴): <input type="text" name="inercia" required>
+            <button type="submit">Agregar Material</button>
+        </form>
+
+        <h3>Materiales Agregados</h3>
+        <table id="tabla-materiales">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Módulo Elasticidad (MPa)</th>
+                    <th>Área (m²)</th>
+                    <th>Inercia (m⁴)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+		
+		<h2>Borrar Material</h2>
+		<form action="/borrar_material" method="post">
+		 Material ID: <input type="text" name="material_id" required>
+		 <button type="submit">Borrar Material</button>
+		</form>
+
+        <h2>Agregar Nodo</h2>
+        <form action="/agregar_nodo" method="post">
+            X: <input type="text" name="x" required>
+            Y: <input type="text" name="y" required>
+            <button type="submit">Agregar Nodo</button>
+        </form>
+		
+		<h2>Borrar Nodo</h2>
+		<form action="/borrar_nodo" method="post">
+			Nodo ID: <input type="text" name="nodo_id" required>
+			<button type="submit">Borrar Nodo</button>
+		</form>
+
+        <h2>Agregar Miembro</h2>
+        <form action="/agregar_miembro" method="post">
+            Nodo Inicio: <input type="text" name="nodo_inicio" required>
+            Nodo Fin: <input type="text" name="nodo_fin" required>
+            <label for="material_id">Material:</label>
+            <select id="material_id" name="material_id" required></select>
+            <button type="submit">Agregar Miembro</button>
+        </form>
+		
+		<h2>Borrar Miembro</h2>
+		<form action="/borrar_miembro" method="post">
+			Miembro ID: <input type="text" name="miembro_id" required>
+		<button type="submit">Borrar Miembro</button>
+		</form>
+
+        <h2>Agregar Restricción</h2>
+        <form action="/agregar_restriccion" method="post">
+            Nodo ID: <input type="text" name="nodo_id" required>
+            <label><input type="checkbox" name="restriccion_x"> Restricción en X</label>
+            <label><input type="checkbox" name="restriccion_y"> Restricción en Y</label>
+            <label><input type="checkbox" name="rotacion"> Restricción en Rotación</label>
+            <button type="submit">Agregar Restricción</button>
+        </form>
+		
+		<h2>Borrar Restricción</h2>
+		<form action="/borrar_restriccion" method="post">
+			Nodo ID: <input type="text" name="nodo_id" required>
+			<button type="submit">Borrar Restricción</button>
+		</form>
+
+        <h2>Agregar Carga Puntual</h2>
+        <form action="/agregar_carga" method="post">
+            <input type="hidden" name="tipo" value="puntual">
+            Nodo ID: <input type="text" name="nodo_id" required>
+            Fx (kN): <input type="text" name="Fx" required>
+            Fy (kN): <input type="text" name="Fy" required>
+            M (kN*m): <input type="text" name="M" required>
+            <button type="submit">Agregar Carga</button>
+        </form>
+		
+		<h2>Borrar Carga Puntual</h2>
+		<form action="/borrar_carga_puntual" method="post">
+			Nodo ID: <input type="text" name="nodo_id" required>
+			<button type="submit">Borrar Carga Puntual</button>
+		</form>
+
+	<h2>Agregar Carga Distribuida</h2>
+	<form action="/agregar_carga" method="post">
+  	   <input type="hidden" name="tipo" value="distribuida">
+	   Nodo Inicio: <input type="text" name="nodo_inicio" required>
+   	   Nodo Fin: <input type="text" name="nodo_fin" required>
+   	   q (kN/m): <input type="text" name="q" required>
+    	  <label for="tipo_carga">Dirección:</label>
+    	  <select name="tipo_carga" required>
+       		 <option value="global">Eje Global</option>
+       		 <option value="local">Eje Local</option>
+  	  </select>
+  	  <button type="submit">Agregar Carga Distribuida</button>
+	</form>
+	
+	<h2>Borrar Carga Distribuida</h2>
+	<form action="/borrar_carga_distribuida" method="post">
+		Nodo Inicio: <input type="text" name="nodo_inicio" required>
+		Nodo Fin: <input type="text" name="nodo_fin" required>
+		<button type="submit">Borrar Carga Distribuida</button>
+	</form>
+
+        <h2>Ejecutar Análisis</h2>
+		<form id="form-analizar" action="/ejecutar_analisis" method="post">
+			<button id="btn-analizar" type="submit">Analizar</button>
+		</form>
+
+    </div>
+</body>
+</html>
