@@ -291,7 +291,7 @@ def ejecutar_analisis():
         img_axial = generar_grafico_esfuerzo(esfuerzos, "axial")
         img_cortante = generar_grafico_esfuerzo(esfuerzos, "cortante")
         img_momento = generar_grafico_esfuerzo(esfuerzos, "momento")
-        img_deformada = generar_grafico_deformacioes()
+        img_deformada = generar_grafico_deformaciones()
 
         print("✅ Análisis completado exitosamente.")
 
@@ -300,6 +300,7 @@ def ejecutar_analisis():
             "img_axial": img_axial,
             "img_cortante": img_cortante,
             "img_momento": img_momento,
+            "img_deformada": img_deformada,
             "reacciones": reacciones
         })
     except Exception as e:
@@ -321,7 +322,7 @@ def calcular_esfuerzos():
         try:
             nodo_inicio = next((n for n in nodos if n[0] == miembro[1]), None)
             nodo_fin = next((n for n in nodos if n[0] == miembro[2]), None)
-            material = next((m for m in materiales if m[0] == miembro [3]), None)
+            material = next((m for m in materiales if m[0] == miembro[3]), None)
 
             if not nodo_inicio or not nodo_fin:
                 print(f"⚠️ No se encontraron los nodos o material para el miembro {miembro[0]}")
