@@ -263,11 +263,8 @@ def ejecutar_analisis():
     global reacciones
     reacciones.clear()
 
-    print(f"📌 Ejecutando análisis... Total nodos: {len(nodos)}, Total miembros: {len(miembros)}")
-
     if not nodos or not miembros:
-        print("⚠️ No hay nodos o miembros definidos para el análisis.")
-        return jsonify({"error": "No hay nodos o miembros definidos para el análisis"}), 400
+       return jsonify({"error": "No hay nodos o miembros definidos para el análisis"}), 400
 
     # Asignar reacciones ficticias si hay restricciones
     for restriccion in restricciones:
@@ -341,12 +338,12 @@ def calcular_esfuerzos():
             momento = np.linspace(-P * L / 2, P * L / 2, 10)  # Momento flector simple
 
             # Cálculo de deformaciones usando la ecuación de flexión
-            deformaciones = np.linspace(0, (P * L**3) / (3 * E * I) if E > 0 and I > 0 else 0, 10)
+            deformaciones = np.linspace(0, (P * L**3) / (3 * E * I) if E > 0 and I > 0 and A > 0 else 0, 10)
 
             esfuerzos[miembro[0]] = {
-                "axial": axial,
-                "cortante": cortante,
-                "momento": momento,
+                "axial": np.linspace(-P / A, P / A, 10),
+                "cortante": np.linspace(-P, P, 10),
+                "momento": np.linspace(-P * L / 2, P * L / 2, 10),
                 "deformaciones": deformaciones,
                 "longitud": L
             }
@@ -355,6 +352,10 @@ def calcular_esfuerzos():
 
     print(f"✅ Esfuerzos generados: {esfuerzos}")  # 🔹 REVISAR QUE NO ESTÉ VACÍO
     return esfuerzos
+    
+def obtener_deformacion(nodo_id):
+    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
+    return (deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000) if deformacion_nodo else (0, 0)
 
 def generar_grafico_deformaciones():
     """Genera el gráfico de la estructura deformada."""
@@ -418,7 +419,7 @@ def generar_grafico_esfuerzo(esfuerzos, tipo):
     else:
         print(f"📌 Generando gráfico de {tipo} para {len(esfuerzos)} miembros.")
         for miembro_id, datos in esfuerzos.items():
-            x_vals = np.linspace(0, datos["longitud"], len(datos.get(tipo, [])))  # Usa la misma cantidad de puntos
+            x_vals = np.linspace(0, datos["longitud"], len(datos[tipo]))  # Usa la misma cantidad de puntos
             if tipo in datos:
                 esfuerzos_esc = datos[tipo] * 0.02  
                 ax.plot(x_vals, esfuerzos_esc, label=f'Miembro {miembro_id}')
