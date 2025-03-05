@@ -50,6 +50,10 @@ def generar_imagen():
         # Si no hay nodos, mostrar una grilla con los ejes visibles
         ax.set_xlim(-5, 5)
         ax.set_ylim(0, 10)
+    else:
+        ax.set_xlim(x_min - margen_x, x_max + margen_x)
+        ax.set_ylim(y_min - margen_y, y_max + margen_y)
+
 
      
     ax.set_xlabel('X (m)')
@@ -215,7 +219,7 @@ def borrar_material():
 
 @app.route('/agregar_carga', methods=['POST'])
 def agregar_carga():
-    tipo = request.form['tipo']
+    tipo = request.form.get['tipo','']
     
     if tipo == "puntual":
         nodo_id = int(request.form['nodo_id'])
@@ -360,8 +364,12 @@ def calcular_esfuerzos():
     return esfuerzos
     
 def obtener_deformacion(nodo_id):
+    if not reacciones:
+        return (0, 0)  # Evita errores si la lista está vacía
     deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
-    return (deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000) if deformacion_nodo else (0, 0)
+    if deformacion_nodo:
+        return (deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000)
+    return (0, 0)
 
 def generar_grafico_deformaciones():
     """Genera el gráfico de la estructura deformada."""
@@ -392,10 +400,6 @@ def generar_grafico_deformaciones():
     for nodo in nodos:
         ax.plot(nodo[1], nodo[2], 'ro', markersize=8)
         ax.text(nodo[1], nodo[2], f'N{nodo[0]}', fontsize=12, verticalalignment='bottom')
-
-    # Función para obtener la deformación de un nodo (simulación)
-    def obtener_deformacion(nodo_id):
-        return np.random.uniform(-0.005, 0.005), np.random.uniform(-0.005, 0.005)
 
     # Función para obtener la deformación de un nodo
 def obtener_deformacion(nodo_id):
