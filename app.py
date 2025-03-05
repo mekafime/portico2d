@@ -110,21 +110,6 @@ def generar_imagen():
         if restriccion[3]:  # Restricción en Rotación
             ax.plot(nodo[1], nodo[2], 'gs', markersize=10)
 
-    #Dibujar estructura deformada
-    escala_deformacion = 500
-    for miembro in miembros:
-        n1 = next(n for n in nodos if n[0] == miembro[1])
-        n2 = next(n for n in nodos if n[0] == miembro[2])
-
-        dx1, dy1 = obtener_deformacion(n1[0])
-        dx2, dy2 = obtener_deformacion(n2[0])
-
-        ax.plot([n1[1] + dx1 * escala_deformacion, n2[1] + dx2 * escala_deformacion], 
-                [n1[2] + dy1 * escala_deformacion, n2[2] + dy2 * escala_deformacion], 
-                'b--', linewidth=2, label="Deformada" if miembro[0] == 1 else "")
-        
-        ax.legend()
-
     img = io.BytesIO()
     plt.savefig(img, format='png')
     img.seek(0)
@@ -306,6 +291,7 @@ def ejecutar_analisis():
         img_axial = generar_grafico_esfuerzo(esfuerzos, "axial")
         img_cortante = generar_grafico_esfuerzo(esfuerzos, "cortante")
         img_momento = generar_grafico_esfuerzo(esfuerzos, "momento")
+        img_deformada = generar_grafico_deformacioes()
 
         print("✅ Análisis completado exitosamente.")
 
@@ -369,12 +355,57 @@ def calcular_esfuerzos():
     print(f"✅ Esfuerzos generados: {esfuerzos}")  # 🔹 REVISAR QUE NO ESTÉ VACÍO
     return esfuerzos
 
-def obtener_deformacion(nodo_id):
-    """Devuelve las deformaciones del nodo."""
-    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
-    if deformacion_nodo:
-        return deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000  # Convertir a metros
-    return 0, 0
+def generar_grafico_deformaciones():
+    """Genera el gráfico de la estructura deformada."""
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.clear()
+
+    if nodos:
+        x_min = min(n[1] for n in nodos)
+        x_max = max(n[1] for n in nodos)
+        y_min = min(n[2] for n in nodos)
+        y_max = max(n[2] for n in nodos)
+
+        margen_x = (x_max - x_min) * 0.2
+        margen_y = (y_max - y_min) * 0.2
+
+        ax.set_xlim(x_min - margen_x, x_max + margen_x)
+        ax.set_ylim(y_min - margen_y, y_max + margen_y)
+
+    else:
+        ax.set_xlim(-5, 5)
+        ax.set_ylim(0, 10)
+
+    ax.set_xlabel('X (m)')
+    ax.set_ylabel('Y (m)')
+    ax.set_title('Estructura Deformada')
+
+    # Dibujar nodos originales
+    for nodo in nodos:
+        ax.plot(nodo[1], nodo[2], 'ro', markersize=8)
+        ax.text(nodo[1], nodo[2], f'N{nodo[0]}', fontsize=12, verticalalignment='bottom')
+
+    # Dibujar estructura deformada
+    escala_deformacion = 500  # Factor de escala
+    for miembro in miembros:
+        n1 = next(n for n in nodos if n[0] == miembro[1])
+        n2 = next(n for n in nodos if n[0] == miembro[2])
+
+        dx1, dy1 = obtener_deformacion(n1[0])
+        dx2, dy2 = obtener_deformacion(n2[0])
+
+        ax.plot([n1[1] + dx1 * escala_deformacion, n2[1] + dx2 * escala_deformacion],
+                [n1[2] + dy1 * escala_deformacion, n2[2] + dy2 * escala_deformacion],
+                'b--', linewidth=2, label="Deformada" if miembro[0] == 1 else "")
+
+    ax.legend()
+
+    img = io.BytesIO()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    img_data = base64.b64encode(img.getvalue()).decode()
+    plt.close()
+    return img_data
   
 def generar_grafico_esfuerzo(esfuerzos, tipo):
     """Genera el gráfico de esfuerzos sobre la estructura."""
