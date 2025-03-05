@@ -40,12 +40,7 @@ def generar_imagen():
         max_carga = max([abs(c[2]) + abs(c[3]) for c in cargas if c[0] == "puntual"], default=0)
         max_carga_dist = max([abs(c[5]) for c in cargas if c[0] == "distribuida"], default=0)
         margen_y += max_carga * 0.1 + max_carga_dist * 0.1  # Agregar margen extra
-    
-    ax.set_aspect('equal', adjustable='datalim')  # Mantiene la proporción de la estructura
-    ax.set_xlim(x_min - margen_x, x_max + margen_x)
-    ax.set_ylim(y_min - margen_y, y_max + margen_y)
-
-    
+     
     if not nodos:
         # Si no hay nodos, mostrar una grilla con los ejes visibles
         ax.set_xlim(-5, 5)
@@ -219,7 +214,7 @@ def borrar_material():
 
 @app.route('/agregar_carga', methods=['POST'])
 def agregar_carga():
-    tipo = request.form.get['tipo','']
+    tipo = request.form.get('tipo','')
     
     if tipo == "puntual":
         nodo_id = int(request.form['nodo_id'])
@@ -363,14 +358,6 @@ def calcular_esfuerzos():
     print(f"✅ Esfuerzos generados: {esfuerzos}")  # 🔹 REVISAR QUE NO ESTÉ VACÍO
     return esfuerzos
     
-def obtener_deformacion(nodo_id):
-    if not reacciones:
-        return (0, 0)  # Evita errores si la lista está vacía
-    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
-    if deformacion_nodo:
-        return (deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000)
-    return (0, 0)
-
 def generar_grafico_deformaciones():
     """Genera el gráfico de la estructura deformada."""
     fig, ax = plt.subplots(figsize=(8, 8))
