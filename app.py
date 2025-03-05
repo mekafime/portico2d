@@ -31,14 +31,19 @@ def generar_imagen():
      carga_max = max([abs(c[2]) + abs(c[3]) for c in cargas if c[0] == "puntual"], default=0)
      carga_dist_max = max([abs(c[5]) for c in cargas if c[0] == "distribuida"], default=0)
      
-    #Agregamos margen basado en nodos y cargas
-     margen_x = max((x_max - x_min) * 0.2, 2)  # 20% del tama?o en X
-     margen_y = max((y_max - y_min) * 0.2, 2) + carga_max + carga_dist_max  # Incluye cargas
-   
-     #Ajustar margenes de los ejes para mantener la proporcion correcta
-     ax.set_aspect('equal', adjustable='datalim')  # Mantiene la proporcion de la estructura
-     ax.set_xlim(x_min - margen_x, x_max + margen_x)
-     ax.set_ylim(y_min - margen_y, y_max + margen_y)
+    # Autoescala considerando las cargas
+    margen_x = max((x_max - x_min) * 0.2, 2) if nodos else 2
+    margen_y = max((y_max - y_min) * 0.2, 2) if nodos else 2
+    
+    # Considerar la magnitud de las cargas para ajustar el margen
+    if cargas:
+        max_carga = max([abs(c[2]) + abs(c[3]) for c in cargas if c[0] == "puntual"], default=0)
+        max_carga_dist = max([abs(c[5]) for c in cargas if c[0] == "distribuida"], default=0)
+        margen_y += max_carga * 0.1 + max_carga_dist * 0.1  # Agregar margen extra
+    
+    ax.set_aspect('equal', adjustable='datalim')  # Mantiene la proporción de la estructura
+    ax.set_xlim(x_min - margen_x, x_max + margen_x)
+    ax.set_ylim(y_min - margen_y, y_max + margen_y)
 
      
     else:
@@ -387,20 +392,25 @@ def generar_grafico_deformaciones():
         ax.plot(nodo[1], nodo[2], 'ro', markersize=8)
         ax.text(nodo[1], nodo[2], f'N{nodo[0]}', fontsize=12, verticalalignment='bottom')
 
+    # Función para obtener la deformación de un nodo (simulación)
+    def obtener_deformacion(nodo_id):
+        return np.random.uniform(-0.005, 0.005), np.random.uniform(-0.005, 0.005)
+    
     # Dibujar estructura deformada
     escala_deformacion = 500  # Factor de escala
     for miembro in miembros:
         n1 = next(n for n in nodos if n[0] == miembro[1])
         n2 = next(n for n in nodos if n[0] == miembro[2])
-
+    
         dx1, dy1 = obtener_deformacion(n1[0])
         dx2, dy2 = obtener_deformacion(n2[0])
-
+    
         ax.plot([n1[1] + dx1 * escala_deformacion, n2[1] + dx2 * escala_deformacion],
                 [n1[2] + dy1 * escala_deformacion, n2[2] + dy2 * escala_deformacion],
                 'b--', linewidth=2, label="Deformada" if miembro[0] == 1 else "")
-
+    
     ax.legend()
+
 
     img = io.BytesIO()
     plt.savefig(img, format='png')
