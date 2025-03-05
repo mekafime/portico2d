@@ -45,11 +45,12 @@ def generar_imagen():
     ax.set_xlim(x_min - margen_x, x_max + margen_x)
     ax.set_ylim(y_min - margen_y, y_max + margen_y)
 
-     
-    else:
-        #Si no hay nodos, mostrar una grilla con los ejes visibles
+    
+    if not nodos:
+        # Si no hay nodos, mostrar una grilla con los ejes visibles
         ax.set_xlim(-5, 5)
         ax.set_ylim(0, 10)
+
      
     ax.set_xlabel('X (m)')
     ax.set_ylabel('Y (m)')
@@ -269,7 +270,7 @@ def ejecutar_analisis():
     reacciones.clear()
 
     if not nodos or not miembros:
-       return jsonify({"error": "No hay nodos o miembros definidos para el análisis"}), 400
+        return jsonify({"error": "No hay nodos o miembros definidos para el análisis"}), 400
 
     # Asignar reacciones ficticias si hay restricciones
     for restriccion in restricciones:
@@ -395,6 +396,12 @@ def generar_grafico_deformaciones():
     # Función para obtener la deformación de un nodo (simulación)
     def obtener_deformacion(nodo_id):
         return np.random.uniform(-0.005, 0.005), np.random.uniform(-0.005, 0.005)
+
+    # Función para obtener la deformación de un nodo
+def obtener_deformacion(nodo_id):
+    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
+    return (deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000) if deformacion_nodo else (0, 0)
+
     
     # Dibujar estructura deformada
     escala_deformacion = 500  # Factor de escala
