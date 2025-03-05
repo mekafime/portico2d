@@ -390,9 +390,18 @@ def generar_grafico_deformaciones():
 
     # Función para obtener la deformación de un nodo
 def obtener_deformacion(nodo_id):
-    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
-    return (deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000) if deformacion_nodo else (0, 0)
+    """Obtiene la deformación en X y Y de un nodo basado en las reacciones."""
+    if not reacciones:  # Si la lista está vacía, retorna 0
+        return (0, 0)
 
+    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
+
+    if deformacion_nodo:
+        dx = deformacion_nodo[1] / 1000  # Convertimos de N a mm
+        dy = deformacion_nodo[2] / 1000
+        return dx, dy
+
+    return (0, 0)  # Si no hay datos para ese nodo, devuelve 0
     
     # Dibujar estructura deformada
     escala_deformacion = 500  # Factor de escala
