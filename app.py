@@ -7,7 +7,7 @@ import numpy as np
 
 app = Flask(__name__)
 
-# 🔹 Datos en memoria
+#Datos en memoria
 nodos = []  # [(id, x, y)]
 miembros = []  # [(id, nodo_inicio, nodo_fin, material_id)]
 cargas = []  # [(tipo, nodo_id, Fx, Fy, M, q)]
@@ -21,13 +21,13 @@ def generar_imagen():
     ax.clear()
 
     if nodos:
-     # Obtener rangos de los nodos para la autoescala
+     #Obtener rangos de los nodos para la autoescala
      x_min = min(n[1] for n in nodos) if nodos else -5
      x_max = max(n[1] for n in nodos) if nodos else 5
      y_min = min(n[2] for n in nodos) if nodos else 0
      y_max = max(n[2] for n in nodos) if nodos else 10
      
-    #Incluir el tama?o de las cargas en la escala
+    #Incluir el tamano de las cargas en la escala
      carga_max = max([abs(c[2]) + abs(c[3]) for c in cargas if c[0] == "puntual"], default=0)
      carga_dist_max = max([abs(c[5]) for c in cargas if c[0] == "distribuida"], default=0)
      
@@ -35,14 +35,14 @@ def generar_imagen():
      margen_x = max((x_max - x_min) * 0.2, 2)  # 20% del tama?o en X
      margen_y = max((y_max - y_min) * 0.2, 2) + carga_max + carga_dist_max  # Incluye cargas
    
-     # Ajustar margenes de los ejes para mantener la proporcion correcta
+     #Ajustar margenes de los ejes para mantener la proporcion correcta
      ax.set_aspect('equal', adjustable='datalim')  # Mantiene la proporcion de la estructura
      ax.set_xlim(x_min - margen_x, x_max + margen_x)
      ax.set_ylim(y_min - margen_y, y_max + margen_y)
 
      
     else:
-        # ?? Si no hay nodos, mostrar una grilla con los ejes visibles
+        #Si no hay nodos, mostrar una grilla con los ejes visibles
         ax.set_xlim(-5, 5)
         ax.set_ylim(0, 10)
      
@@ -50,18 +50,18 @@ def generar_imagen():
     ax.set_ylabel('Y (m)')
     ax.set_title('Estructura 2D')    
    
-    # Dibujar nodos
+    #Dibujar nodos
     for nodo in nodos:
       ax.plot(nodo[1], nodo[2], 'ro', markersize=8)
       ax.text(nodo[1], nodo[2], f'N{nodo[0]}', fontsize=12, verticalalignment='bottom')
 
-    # Dibujar miembros
+    #Dibujar miembros
     for miembro in miembros:
       n1 = next(n for n in nodos if n[0] == miembro[1])
       n2 = next(n for n in nodos if n[0] == miembro[2])
       ax.plot([n1[1], n2[1]], [n1[2], n2[2]], 'k-', linewidth=2)
      
-    # Dibujar cargas
+    #Dibujar cargas
     for carga in cargas:
         if carga[0] == "puntual":
             nodo = next(n for n in nodos if n[0] == carga[1])
@@ -81,13 +81,13 @@ def generar_imagen():
 
          if tipo_carga == "global":
           sentido = -1 if carga[5] > 0 else 1
-         # Carga vertical hacia abajo (global Y)
+         #Carga vertical hacia abajo (global Y)
           for i in range(len(x_pos)):
            ax.arrow(x_pos[i], y_pos[i], 0, q * 0.5, 
                          head_width=0.3, head_length=0.3, fc='green', ec='green')
 
          elif tipo_carga == "local":
-          # Calcular vector unitario perpendicular al miembro
+          #Calcular vector unitario perpendicular al miembro
           dx = n2[1] - n1[1]
           dy = n2[2] - n1[2]
           longitud = (dx**2 + dy**2)**0.5
@@ -100,7 +100,7 @@ def generar_imagen():
            ax.arrow(x_pos[i], y_pos[i], normal_x * q * 0.5, normal_y * q * 0.5, 
                          head_width=0.3, head_length=0.3, fc='orange', ec='orange')
 
-    # Dibujar restricciones
+    #Dibujar restricciones
     for restriccion in restricciones:
         nodo = next(n for n in nodos if n[0] == restriccion[0])
         if restriccion[1]:  # Restricción en X
@@ -109,6 +109,21 @@ def generar_imagen():
             ax.plot(nodo[1], nodo[2], 'rs', markersize=10)
         if restriccion[3]:  # Restricción en Rotación
             ax.plot(nodo[1], nodo[2], 'gs', markersize=10)
+
+    #Dibujar estructura deformada
+    escala_deformacion = 500
+    for miembro in miembros:
+        n1 = next(n for n in nodos if n[0] == miembro[1])
+        n2 = next(n for n in nodos if n[0] == miembro[2])
+
+        dx1, dy1 = obtener_deformacion(n1[0])
+        dx2, dy2 = obtener_deformacion(n2[0])
+
+        ax.plot([n1[1] + dx1 * escala_deformacion, n2[1] + dx2 * escala_deformacion], 
+                [n1[2] + dy1 * escala_deformacion, n2[2] + dy2 * escala_deformacion], 
+                'b--', linewidth=2, label="Deformada" if miembro[0] == 1 else "")
+        
+        ax.legend()
 
     img = io.BytesIO()
     plt.savefig(img, format='png')
@@ -287,7 +302,7 @@ def ejecutar_analisis():
 
         print(f"📌 Se calcularon esfuerzos para {len(esfuerzos)} miembros.")
 
-        # Generar gráficos de esfuerzos
+        #Generar gráficos de esfuerzos
         img_axial = generar_grafico_esfuerzo(esfuerzos, "axial")
         img_cortante = generar_grafico_esfuerzo(esfuerzos, "cortante")
         img_momento = generar_grafico_esfuerzo(esfuerzos, "momento")
@@ -320,17 +335,32 @@ def calcular_esfuerzos():
         try:
             nodo_inicio = next((n for n in nodos if n[0] == miembro[1]), None)
             nodo_fin = next((n for n in nodos if n[0] == miembro[2]), None)
+            material = next((m for m in materiales if m[0] == miembro [3]), None)
 
             if not nodo_inicio or not nodo_fin:
-                print(f"⚠️ No se encontraron los nodos {miembro[1]} o {miembro[2]} para el miembro {miembro[0]}")
+                print(f"⚠️ No se encontraron los nodos o material para el miembro {miembro[0]}")
                 continue  # Saltar este miembro si no se encuentran sus nodos
 
             L = ((nodo_fin[1] - nodo_inicio[1])**2 + (nodo_fin[2] - nodo_inicio[2])**2) ** 0.5  
+            E, A, I = material[1], material[2], material[3]
+
+            # Obtener carga aplicada en el nodo
+            carga = next((c for c in cargas if c[1] == nodo_inicio[0]), None)
+            P = carga[2] if carga else 0  # Tomamos la carga en X (podría ser en Y también)
+
+            # Cálculo de esfuerzos teóricos
+            axial = np.linspace(-P / A, P / A, 10)  # Esfuerzo normal = P / A
+            cortante = np.linspace(-P, P, 10)  # Esfuerzo cortante (aproximado)
+            momento = np.linspace(-P * L / 2, P * L / 2, 10)  # Momento flector simple
+
+            # Cálculo de deformaciones usando la ecuación de flexión
+            deformaciones = np.linspace(0, (P * L**3) / (3 * E * I) if E > 0 and I > 0 else 0, 10)
 
             esfuerzos[miembro[0]] = {
-                "axial": np.linspace(np.random.uniform(-50, 50), np.random.uniform(-50, 50), 10),
-                "cortante": np.linspace(np.random.uniform(-30, 30), np.random.uniform(-30, 30), 10),
-                "momento": np.linspace(np.random.uniform(-100, 100), np.random.uniform(-100, 100), 10),
+                "axial": axial,
+                "cortante": cortante,
+                "momento": momento,
+                "deformaciones": deformaciones,
                 "longitud": L
             }
         except Exception as e:
@@ -338,6 +368,13 @@ def calcular_esfuerzos():
 
     print(f"✅ Esfuerzos generados: {esfuerzos}")  # 🔹 REVISAR QUE NO ESTÉ VACÍO
     return esfuerzos
+
+def obtener_deformacion(nodo_id):
+    """Devuelve las deformaciones del nodo."""
+    deformacion_nodo = next((r for r in reacciones if r[0] == nodo_id), None)
+    if deformacion_nodo:
+        return deformacion_nodo[1] / 1000, deformacion_nodo[2] / 1000  # Convertir a metros
+    return 0, 0
   
 def generar_grafico_esfuerzo(esfuerzos, tipo):
     """Genera el gráfico de esfuerzos sobre la estructura."""
@@ -349,7 +386,7 @@ def generar_grafico_esfuerzo(esfuerzos, tipo):
     else:
         print(f"📌 Generando gráfico de {tipo} para {len(esfuerzos)} miembros.")
         for miembro_id, datos in esfuerzos.items():
-            x_vals = np.linspace(0, datos["longitud"], len(datos["axial"]))  # Usa la misma cantidad de puntos
+            x_vals = np.linspace(0, datos["longitud"], len(datos.get(tipo, [])))  # Usa la misma cantidad de puntos
             if tipo in datos:
                 esfuerzos_esc = datos[tipo] * 0.02  
                 ax.plot(x_vals, esfuerzos_esc, label=f'Miembro {miembro_id}')
